@@ -54,6 +54,7 @@
         }
         localStorage.setItem("competitionCode", code)
         localStorage.setItem("mainPeer", peerConnect);
+        window.location.href = base + "/portal";
         //window.location.href = base + "/onboard"
         console.log(peerConnect);
     }

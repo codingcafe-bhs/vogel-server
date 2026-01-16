@@ -16,37 +16,69 @@
     let code = $state("");
 
     let peer;
+    let peerConnection;
+    let connectionStatus = $state("disconnected");
+    
     onMount(async () => {
         const pkg = await import("peerjs");
         Peer = pkg.default;
         
-        
-        let mainPeer = localStorage.getItem("mainPeer")
+        let mainPeer = localStorage.getItem("mainPeer");
         if (mainPeer != null) {
             peer = new Peer(mainPeer);
-            conn.on("open", function() {
-
-                conn.on("data", function(data) {
-                    if (data[0] == mainPeer+"-test" && data[1] == "test") {
-                        if (data[2] == "init check") {
-                            console.log("handshake from portal successful")
-                            conn.send([mainPeer+"-test", "main server", "handshake"]);
-                        }
-                    }
-                })
-
-                conn.on("error", function(err) {
-                    console.log(err);
-                })
+            peer.on("open", function(id) {
+                console.log("PeerJS ID:", id);
             })
 
+            // dev purposes
 
+            peer.on("connection", function(conn) {
+                conn.on("data", function(data) {
+                    console.log("Received data on incoming connection:", data);
+                });
+            })
+
+            //
+
+            peer.on("error", function(err) {
+                console.log(err);
+            })
         }
         else {
             window.location.href = base;
             return 0;
         }
-    })
+    });
+    
+    function setupConnectionHandlers(conn) {
+        conn.on("open", function() {
+            console.log("Connection established with:", conn.peer);
+            peerConnection = conn;
+            connectionStatus = "connected";
+            
+            // Send initial handshake
+            conn.send([localStorage.getItem("mainPeer") + "-test", "portal", "init check"]);
+        });
+        
+        conn.on("data", function(data) {
+            console.log("Received data:", data);
+            if (Array.isArray(data) && data.length >= 3) {
+                if (data[2] == "handshake") {
+                    console.log("Handshake from main server successful");
+                }
+            }
+        });
+        
+        conn.on("error", function(err) {
+            console.error("Connection error:", err);
+            connectionStatus = "error";
+        });
+        
+        conn.on("close", function() {
+            console.log("Connection closed");
+            connectionStatus = "disconnected";
+        });
+    }
 
     
 
